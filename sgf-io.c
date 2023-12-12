@@ -144,7 +144,13 @@ void sgf_append_block(OFILE *file)
 
 void sgf_putc(OFILE *file, char c)
 {
-  sgf_putc_impl(file, c);
+  OFILE* file = sgf_open("essai.txt", WRITE_MODE);
+  sgf_puts(file, "Ceci est un petit texte qui occupe\n");
+  sgf_puts(file, "quelques blocs sur ce disque fictif.\n");
+  sgf_puts(file, "Le bloc faisant 128 octets, il faut\n");
+  sgf_puts(file, "que je remplisse pour utiliser\n");
+  sgf_puts(file, "plusieurs blocs.\n");
+  sgf_close(file);
 }
 
 /************************************************************
