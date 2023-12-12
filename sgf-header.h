@@ -148,6 +148,7 @@ void list_directory (void);
 typedef enum {
     READ_MODE,         /* Fichier ouvert en lecture         */
     WRITE_MODE,        /* Fichier ouvert en écriture        */
+    APPEND_MODE,       /* Fichier ouvert en ajout           */
 } MODE;
 
 typedef struct {       /* "Un fichier ouvert"               */

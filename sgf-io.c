@@ -46,7 +46,9 @@ int sgf_getc(OFILE *file)
   {
     sgf_read_block(file, file->ptr / BLOCK_SIZE);
   }
-  return file->buffer[(file->ptr=file->ptr + 8) % BLOCK_SIZE];
+  return file->buffer[(file->ptr++) % BLOCK_SIZE];
+  //return file->buffer[(file->ptr=file->ptr + 1) % BLOCK_SIZE];
+  //return file->buffer[(file->ptr=file->ptr + 8) % BLOCK_SIZE];
 
 }
 
@@ -128,7 +130,23 @@ void sgf_read_block(OFILE *file, int block_number)
 
 void sgf_append_block(OFILE *file)
 {
-  sgf_append_block_impl(file);
+  //sgf_append_block_impl(file);
+  int adr = alloc_block();
+  write_block(adr, &file->buffer);
+  set_fat(adr, FAT_EOF);
+  if (file->inode.first == FAT_EOF)
+  {
+    file->inode.first = adr;
+    file->inode.last = adr;
+    write_inode(file->adr_inode, file->inode);
+  }
+  else
+  {
+    set_fat(file->inode.last, adr);
+    file->inode.last = adr;
+    write_inode(file->adr_inode, file->inode);
+  }
+
 }
 
 /************************************************************
@@ -144,7 +162,13 @@ void sgf_append_block(OFILE *file)
 
 void sgf_putc(OFILE *file, char c)
 {
-  sgf_putc_impl(file, c);
+  // sgf_putc_impl(file, c);
+  file->buffer[(file->ptr++) % BLOCK_SIZE] = c;
+  if (file->ptr % BLOCK_SIZE == 0)
+  {
+    sgf_append_block(file);
+  }
+
 }
 
 /************************************************************
@@ -172,7 +196,18 @@ void sgf_puts(OFILE *file, char *s)
 
 void sgf_remove(int adr_inode)
 {
-  sgf_remove_impl(adr_inode);
+  //sgf_remove_impl(adr_inode);
+  INODE inode = read_inode(adr_inode);
+  set_fat(inode.first, FAT_FREE);
+  int adr = inode.first;
+  while (get_fat(adr) != FAT_EOF)
+  {
+    int tmp = get_fat(adr);
+    set_fat(adr, FAT_FREE);
+    adr = tmp;
+  }
+  set_fat(adr, FAT_FREE);
+
 }
 
 /************************************************************
@@ -221,6 +256,12 @@ OFILE *sgf_open(const char *name, MODE mode)
     if (oldinode > 0)
       sgf_remove(oldinode);
     break;
+  case APPEND_MODE:
+    adr_inode = find_inode(name);
+    if (adr_inode < 0)
+      return NULL;
+
+    break;
   default:
     return NULL;
   }
@@ -247,5 +288,9 @@ OFILE *sgf_open(const char *name, MODE mode)
 
 void sgf_close(OFILE *file)
 {
-  sgf_close_impl(file);
+  // sgf_close_impl(file);
+  if (file->mode == WRITE_MODE && file->ptr % BLOCK_SIZE != 0)
+  {
+    sgf_append_block(file);
+  }
 }
